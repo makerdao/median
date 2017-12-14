@@ -15,16 +15,41 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.18;
 
 import "ds-test/test.sol";
 
 import "./median.sol";
 
+contract Oracle {
+    Median m;
+    
+    function Oracle(Median m_) public {
+        m = m_;
+    }
+
+    function doPoke(uint128 med, uint128[] val, uint64[] age,
+                    bytes32[] h, uint8[] v, bytes32[] r, bytes32[] s) public
+    {
+        m.poke(med, val, age, h, v, r, s);
+    }
+
+}
+
 contract MedianTest is DSTest {
-    Median median;
+    Median m;
 
     function setUp() public {
-        median = new Median();
+        m = new Median();
     }
+
+    function testOne() public {
+        uint v = 479 ether;
+        log_named_uint("v", v);
+        uint t = 1513030216;
+        bytes32 h = keccak256(v,t);
+        log_named_bytes32("h", h);
+        assertTrue(true);
+    }
+
 }

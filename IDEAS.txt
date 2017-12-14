@@ -1,0 +1,94 @@
+bytes32
+
+uint128 val
+uint64  age
+bytes   sig
+
+uint128[] val, uint64[] age, bytes[] sig (== length)
+
+med
+
+uint128 val
+uint64  age <-- timestamp now
+
+Mapping of authorized oracles
+
+Each oracle signs price data (ETH_USD) every minute (second?) and broadcasts it via scuttlebot or whatever, maybe posts it somewhere or exposes it as an API. We can have as many as we want, and this part is all off-chain.
+
+Oracles sign messages as such: (maybe with EIP712 eth_signTypedData)
+
+`uint128 val, uint64 age` (there's room for a uint64 here for something else)
+
+So in the end, every oracle submits:
+```
+{
+    uint128 val,
+    uint64  age,
+    bytes   sig
+}
+```
+Feedbots grab these messages, get enough valid ones (at least the minimum required by Medianizer) and do these steps:
+
+1. Order every feed by value, lowest to highest
+2. Calculate the median off-chain
+3. Send transaction to the blockchain Medianizer (anyone can do this)
+4. Medianizer on-chain does the following (code not tested)
+
+```
+// Medianizer values
+uint128 val;
+uint64  age;
+uint64  ???; // room for something here maybe
+
+uint8   min; // minimum valid feeds
+
+// Authorized oracles, set by an auth
+mapping (address => bool) oracles;
+
+function poke(uint128 med_, uint128[] val_, uint64[] age_, bytes[] sig) {
+    // One val, age and sig per feed
+    require(val_.length == age_.length);
+    require(age_.length == sig_.length);
+
+    // At least min feeds
+    require(val_.length >= min);
+
+    var length = val_.length;
+
+    for (uint i = 0; i < length; i++) {
+        // Validate the values were signed by an authorized oracle
+        // ecverify does some ecrecover magic
+        address signer = ecverify(keccak256(val_[i], age_[i], sig_[i]));
+        require(oracles[signer]);
+
+        // Price feed age greater than last medianizer age
+        require(age_[i] > age);
+
+        // Check for ordered values (TODO: add array out of bounds check!)
+        require(val_[i] <= val_[i + 1]);
+    }
+    // Calculate median (we required values were already ordered)
+    if (length % 2 == 0) {
+        // Even number of feeds, grab middle ones and average
+        uint128 one = val_[(length / 2) - 1];
+        uint128 two = val_[length / 2];
+        // Check the median value provided is accurate
+        require(med_ == wdiv(add(one, two)));
+    } else {
+        // Grab middle value, check if it's accurate
+        require(med_ == val_((length - 1) / 2));
+    }
+    // Write the value and timestamp to storage
+    val = med_;
+    age = uint64(block.timestamp);
+
+    LogPrice(val, age); // some event
+}
+```
+
+This accomplishes the following:
+
+- Oracles can sign as many messages as they want
+- Anyone can update the medianizer (we can incentivize people)
+- Validity of medianizer price can be handled elsewhere maybe? It just tells you price and last update time
+- One transaction per update, instead of one per oracle

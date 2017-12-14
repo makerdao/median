@@ -15,8 +15,107 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.18;
 
-contract Median {
+import "ds-thing/thing.sol";
+
+contract Median is DSThing {
+
+    uint128        val;
+    uint64  public age;
     
+    uint8   public min; // minimum valid feeds
+
+    // Authorized oracles, set by an auth
+    mapping (address => bool) public orcl;
+
+    event LogPrice(uint128 val, uint64 age);
+
+    function read() public view returns (bytes32) {
+        require(val > 0);
+        return bytes32(val);
+    }
+
+    function peek() public view returns (bytes32,bool) {
+        return (bytes32(val), val > 0);
+    }
+
+    function poke(uint128 med_, uint128[] val_, uint64[] age_,
+                  bytes32[] h, uint8[] v, bytes32[] r, bytes32[] s) public
+    {
+        uint length = val_.length;
+        
+        require(length >= min);
+
+        // Array to store signer addresses, to check for uniqueness later
+        address[] memory signers = new address[](length);
+
+        for (uint i = 0; i < length; i++) {
+            // Validate the hash and values values were signed by an authorized oracle
+            require(keccak256(uint(val_[i]), uint(age_[i])) == h[i]);
+
+            address signer = ecrecover(
+                keccak256("\x19Ethereum Signed Message:\n32", h[i]),
+                v[i], r[i], s[i]
+            );
+
+            // Check that signer is an oracle
+            require(orcl[signer]);
+
+            // Store signer, will check for uniqueness later
+            signers[i] = signer;
+
+            // Price feed age greater than last medianizer age
+            require(age_[i] > age);
+
+            // Check for ordered values (TODO: better out of bounds check?)
+            if ((i + 1) < length) {
+                require(val_[i] <= val_[i + 1]);
+            }
+        }
+        // Check that signers only appear once
+        require(isUnique(signers));
+        
+        // Grab the median (values are already ordered)
+        if (length % 2 == 0) {
+            // Even number of feeds, grab middle ones and average
+            uint128 one = val_[(length / 2) - 1];
+            uint128 two = val_[length / 2];
+            // Check the median value provided is accurate
+            require(med_ == wdiv(add(one, two), 2 ether));
+        } else {
+            // Grab middle value, check if it's accurate
+            require(med_ == val_[(length - 1) / 2]);
+        }
+        // Write the value and timestamp to storage
+        val = med_;
+        age = uint64(block.timestamp);
+
+        LogPrice(val, age); // some event
+    }
+
+    function isUnique(address[] array) internal pure returns (bool) {
+        for (uint i = 0; i < array.length; i++) {
+            for (uint j = i + 1; j < array.length; j++) {
+                if (array[i] == array[j]) {
+                    return false;
+                }
+            }
+            
+        }
+        return true;
+    }
+
+    function lift(address a) public auth {
+        orcl[a] = true;
+    }
+
+    function drop(address a) public auth {
+        orcl[a] = false;
+    }
+
+    function min(uint8 min_) public auth {
+        min = min_;
+    }
+
 }
