@@ -62,9 +62,6 @@ contract Median is DSThing {
             // Check that signer is an oracle
             require(orcl[signer]);
 
-            // Store signer, will check for uniqueness later
-            signers[i] = signer;
-
             // Price feed age greater than last medianizer age
             require(age_[i] > age);
 
@@ -72,9 +69,13 @@ contract Median is DSThing {
             if ((i + 1) < length) {
                 require(val_[i] <= val_[i + 1]);
             }
+            
+            // Check for uniqueness (TODO: is this the best we can do?)
+            for (uint j = 0; j < i; j++) {
+                require(signers[j] != signer);
+            }
+            signers[i] = signer;
         }
-        // Check that signers only appear once
-        require(isUnique(signers));
         
         // Grab the median (values are already ordered)
         if (length % 2 == 0) {
@@ -94,18 +95,6 @@ contract Median is DSThing {
         LogPrice(val, age); // some event
     }
 
-    function isUnique(address[] array) internal pure returns (bool) {
-        for (uint i = 0; i < array.length; i++) {
-            for (uint j = i + 1; j < array.length; j++) {
-                if (array[i] == array[j]) {
-                    return false;
-                }
-            }
-            
-        }
-        return true;
-    }
-
     function lift(address a) public auth {
         orcl[a] = true;
     }
@@ -115,6 +104,7 @@ contract Median is DSThing {
     }
 
     function min(uint8 min_) public auth {
+        require(min_ > 0);
         min = min_;
     }
 
