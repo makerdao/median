@@ -95,6 +95,15 @@ contract Median is DSThing {
         LogPrice(val, age); // some event
     }
 
+    function check(bytes32 h, uint8 v, bytes32 r, bytes32 s) 
+        public pure returns (address signer)
+    {
+        signer = ecrecover(
+            keccak256("\x19Ethereum Signed Message:\n32", h), 
+            v, r, s);
+        return signer;
+    }
+
     function lift(address a) public auth {
         orcl[a] = true;
     }

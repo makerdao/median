@@ -5,15 +5,13 @@
 set -e
 
 export SOLC_FLAGS=--optimize
-port=2000
-[[ $1 ]] && port=$1
-export ETH_RPC_PORT=$port
 export ETH_FROM=`seth rpc eth_coinbase`
 export ETH_GAS=3000000
+export ETH_RPC_ACCOUNTS=yes
 
 dapp build
 
-usd=550
+usd=1550
 price=$(seth --to-word $(seth --to-wei "$usd" eth))
 date=$(seth --to-word $(date +%s))
 

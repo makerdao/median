@@ -52,4 +52,16 @@ contract MedianTest is DSTest {
         assertTrue(true);
     }
 
+    function testTwo() public {
+        uint8 v = 28;
+        bytes32 r = 0xb55285a60863bd6debed9b73bf39b3f66171df51d63a903244a4402928ad728c;
+        bytes32 s = 0x24bdbd23b27c3ea3946f86bd59aaaa04f908287ef3ac54ddb9ce5b90d45b96b7;
+        bytes32 h = 0xcc3805294611db321d58e6745a0841767eb87fd96a3ddbdbe88d40a81f4af6fa;
+        address a1 = 0xe0264Bb2ECba9729501E21a366F57670b3CAfa1C;
+        address a2 = ecrecover(
+            keccak256("\x19Ethereum Signed Message:\n32", h), 
+            v, r, s);
+        assertEq(a1,a2);
+    }
+
 }
