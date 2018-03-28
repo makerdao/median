@@ -103,7 +103,7 @@ contract Median is DSThing {
         orcl[a] = false;
     }
 
-    function min(uint8 min_) public auth {
+    function setMin(uint8 min_) public auth {
         require(min_ > 0);
         min = min_;
     }
