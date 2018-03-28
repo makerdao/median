@@ -1,6 +1,6 @@
 // median.sol - Medianizer v2
 
-// Copyright (C) 2017  DappHub, LLC
+// Copyright (C) 2017, 2018  DappHub, LLC
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,21 +15,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.20;
 
 import "ds-thing/thing.sol";
 
 contract Median is DSThing {
 
     uint128        val;
-    uint64  public age;
+    uint32  public age;
     
     uint8   public min; // minimum valid feeds
 
     // Authorized oracles, set by an auth
     mapping (address => bool) public orcl;
 
-    event LogPrice(uint128 val, uint64 age);
+    event LogPrice(uint128 val, uint32 age);
 
     function read() public view returns (bytes32) {
         require(val > 0);
@@ -40,7 +40,7 @@ contract Median is DSThing {
         return (bytes32(val), val > 0);
     }
 
-    function poke(uint128 med_, uint128[] val_, uint64[] age_,
+    function poke(uint128 med_, uint128[] val_, uint32[] age_,
                   bytes32[] h, uint8[] v, bytes32[] r, bytes32[] s) public
     {
         uint length = val_.length;
@@ -90,7 +90,7 @@ contract Median is DSThing {
         }
         // Write the value and timestamp to storage
         val = med_;
-        age = uint64(block.timestamp);
+        age = uint32(block.timestamp);
 
         LogPrice(val, age); // some event
     }
