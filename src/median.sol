@@ -96,6 +96,7 @@ contract Median is DSThing {
     }
 
     function lift(address a) public auth {
+        require(a != 0x0);
         orcl[a] = true;
     }
 
