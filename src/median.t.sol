@@ -15,41 +15,53 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.4.20;
+pragma solidity ^0.4.24;
 
-import "ds-test/test.sol";
+// import "ds-test/test.sol";
 
-import "./median.sol";
+// import "./median.sol";
 
-contract Oracle {
-    Median m;
+// contract Oracle {
+//     Median m;
     
-    function Oracle(Median m_) public {
-        m = m_;
-    }
+//     constructor(Median m_) public {
+//         m = m_;
+//     }
 
-    function doPoke(uint128 med, uint128[] val, uint32[] age,
-                    bytes32[] h, uint8[] v, bytes32[] r, bytes32[] s) public
-    {
-        m.poke(med, val, age, h, v, r, s);
-    }
+//     function doPoke(
+//         uint256 med, uint256[] val, uint256[] age,
+//         uint8[] v, bytes32[] r, bytes32[] s) public
+//     {
+//         m.poke(med, val, age, v, r, s);
+//     }
 
-}
+// }
 
-contract MedianTest is DSTest {
-    Median m;
+// contract MedianTest is DSTest {
+//     Median m;
 
-    function setUp() public {
-        m = new Median();
-    }
+//     function setUp() public {
+//         m = new Median();
+//     }
 
-    function testOne() public {
-        uint v = 479 ether;
-        log_named_uint("v", v);
-        uint t = 1513030216;
-        bytes32 h = keccak256(v,t);
-        log_named_bytes32("h", h);
-        assertTrue(true);
-    }
+//     function testOne() public {
+//         uint v = 479 ether;
+//         emit log_named_uint("v", v);
+//         uint t = 1513030216;
+//         emit log_named_uint("t", t);
+//         bytes32 h = keccak256(abi.encodePacked(v,t));
+//         emit log_named_bytes32("h", h);
+//         assertTrue(true);
+//     }
 
-}
+//     function testTwo() public {
+//         uint128 a = 350 ether;
+//         emit log_named_uint("a", a);
+//         bytes memory b = abi.encodePacked(a);
+//         emit logs(b);
+//         bytes32 h = keccak256(b);
+//         emit log_named_bytes32("h", h);
+//         assertTrue(false);
+//     }
+
+// }
