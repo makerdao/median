@@ -19,7 +19,7 @@ pragma solidity ^0.4.24;
 
 import "ds-thing/thing.sol";
 
-contract Median is DSMath, DSAuth {
+contract Median is DSAuth {
 
     uint128        val;
     uint48  public age;
@@ -66,16 +66,16 @@ contract Median is DSMath, DSAuth {
             require(orcl[signer], "Signature by invalid oracle");
 
             // Price feed age greater than last medianizer age
-            require(age_[i] >= uint256(age), "Stale message");
+            require(age_[i] > uint256(age), "Stale message");
 
             // Check for ordered values (TODO: better out of bounds check?)
             if ((i + 1) < l) {
-                require(val_[i] <= val_[i + 1], "Messages not in order");
+                // require(val_[i] <= val_[i + 1], "Messages not in order");
             }
             
             // Check for uniqueness (TODO: is this the best we can do?)
             for (uint j = 0; j < i; j++) {
-                require(signer > 0, "Oracle already signed");
+                require(signers[j] != signer, "Oracle already signed");
             }
             signers[i] = signer;
         }
