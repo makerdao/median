@@ -23,9 +23,13 @@ contract Median is DSAuth {
 
     uint128        val;
     uint48  public age;
-    
-    bytes32 public wat = "ETHUSD";
+    bytes32 public wat;
     uint256 public min; // minimum valid feeds
+
+    //Set type of Oracle
+    constructor(bytes32 _wat) public {
+        wat=_wat;
+    }
 
     // Authorized oracles, set by an auth
     mapping (address => bool) public orcl;
