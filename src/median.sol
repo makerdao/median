@@ -21,7 +21,7 @@ import "ds-thing/thing.sol";
 
 contract Median is DSAuth {
 
-    uint128        val;
+    uint128 public val;
     uint48  public age;
     bytes32 public wat;
     uint256 public min; // minimum valid feeds
