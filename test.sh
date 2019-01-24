@@ -72,12 +72,21 @@ for acc in "${accounts[@]}"; do
     s=${res:64:64}
     v=${res:128:2}
     v=$(seth --to-word "0x$v")
-
+    
+    price=$(seth --to-wei "$price" eth)
+    prices+=("$(seth --to-word "$price")")
     tss+=("$(seth --to-word "$ts")")
-    prices+=("$(seth --to-word "$(seth --to-wei "$price" eth)" )")
     rs+=("$r")
     ss+=("$s")
     vs+=("$v")
+    cat <<EOF
+Address: $acc
+  val: $price
+  ts : $ts
+  v  : $v
+  r  : $r
+  s  : $s
+EOF
 done
 
 allts=$(join "${tss[@]}")

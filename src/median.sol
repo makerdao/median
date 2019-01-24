@@ -21,8 +21,8 @@ import "ds-thing/thing.sol";
 
 contract Median is DSAuth {
 
-    uint128 public val;
-    uint48  public age;
+    uint256 public val;
+    uint256 public age;
     bytes32 public wat;
     uint256 public min; // minimum valid feeds
 
@@ -34,15 +34,16 @@ contract Median is DSAuth {
     // Authorized oracles, set by an auth
     mapping (address => bool) public orcl;
 
-    event LogPrice(uint128 val, uint48 age);
+    event LogFeedPrice(address indexed who, uint256 val, uint256 age);
+    event LogMedianPrice(uint256 val, uint256 age);
 
     function read() external view returns (bytes32) {
         require(val > 0, "Invalid price feed");
-        return bytes32(uint256(val));
+        return bytes32(val);
     }
 
     function peek() external view returns (bytes32,bool) {
-        return (bytes32(uint256(val)), val > 0);
+        return (bytes32(val), val > 0);
     }
 
     function recover(uint256 val_, uint256 age_, uint8 v, bytes32 r, bytes32 s, bytes32 wat_) internal pure returns (address) {
@@ -61,8 +62,8 @@ contract Median is DSAuth {
     }
 
     function poke(
-        uint256[] calldata val_, uint256[] calldata age_,
-        uint8[] calldata v, bytes32[] calldata r, bytes32[] calldata s) external
+        uint256[] memory val_, uint256[] memory age_,
+        uint8[] memory v, bytes32[] memory r, bytes32[] memory s) public
     {
         uint256 l = val_.length;
         require(l >= min, "Not enough signed messages");
@@ -78,30 +79,26 @@ contract Median is DSAuth {
             require(orcl[signer], "Signature by invalid oracle");
 
             // Price feed age greater than last medianizer age
-            require(age_[i] > uint256(age), "Stale message");
+            require(age_[i] > age, "Stale message");
 
             // Check for ordered values (TODO: better out of bounds check?)
             if ((i + 1) < l) {
                 require(val_[i] <= val_[i + 1], "Messages not in order");
             }
-            
-            // Check for uniqueness (TODO: is this the best we can do?)
-            // for (uint j = 0; j < i; j++) {
-            //     require(signers[j] != signer, "Oracle already signed");
-            // }
-            // signers[i] = signer;
 
             uint8 slot = getSlot(signer);
             require(shr(bloom, slot) % 2 == 0, "Oracle already signed");
             bloom += uint256(2) ** slot;
+            
+            // emit LogFeedPrice(signer, val_[i], age_[i]);
         }
         
         // Write the value and timestamp to storage
         // require(med_ == val_[(l - 1) / 2], "Sanity check fail");
-        val = uint128(val_[(l - 1) / 2]);
-        age = uint48(block.timestamp);
+        val = val_[(l - 1) / 2];
+        age = block.timestamp;
 
-        emit LogPrice(val, age); // some event
+        emit LogMedianPrice(val, age); // some event
     }
 
     function lift(address a) external auth {
