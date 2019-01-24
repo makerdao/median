@@ -49,20 +49,23 @@ median=$(seth --to-address "$1" 2>/dev/null) || {
     export SOLC_FLAGS=--optimize
     dapp build 2&>/dev/null
     echo "Creating median..."
-    median=$(dapp create Median)
+    name=$(seth --to-bytes32 "$(seth --from-ascii "ethusd")")
+    median=$(dapp create Median "$name")
 
-    seth send "$median" 'setMin(uint256)' "$(seth --to-word 11)" &> /dev/null
+    seth send "$median" 'setMin(uint256)' "$(seth --to-word 5)" &> /dev/null
     for acc in "${accounts[@]}"; do
         seth send "$median" 'lift(address)' "$acc" &> /dev/null
     done
 }
 
 echo "Median: $median"
-
+i=1
 for acc in "${accounts[@]}"; do
     ts=$(date +%s)
-    price=250.$((RANDOM % 1000))
-    hash=$(hash "ETHUSD" "$price" "$ts")
+    price=$((250 + i)).$((RANDOM % 1000))
+    i=$((i + 1))
+    echo "$price"
+    hash=$(hash "ethusd" "$price" "$ts")
     sig=$(ethsign msg --from "$acc" --data "$hash" --passphrase-file "$ETH_PASSWORD")
     res=$(sed 's/^0x//' <<< "$sig")
     r=${res:0:64}
@@ -84,7 +87,7 @@ alls=$(join "${ss[@]}")
 allv=$(join "${vs[@]}")
 
 echo "Sending tx..."
-tx=$(seth send --async "$median" 'poke(uint256[],uint256[],uint8[],bytes32[],bytes32[])' \
+tx=$(seth send --async "$median" 'poke(uint256[] memory,uint256[] memory,uint8[] memory,bytes32[] memory,bytes32[] memory)' \
 "[$allprices]" \
 "[$allts]" \
 "[$allv]" \

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import "ds-thing/thing.sol";
 
@@ -28,7 +28,7 @@ contract Median is DSAuth {
 
     //Set type of Oracle
     constructor(bytes32 _wat) public {
-        wat=_wat;
+        wat = _wat;
     }
 
     // Authorized oracles, set by an auth
@@ -36,13 +36,13 @@ contract Median is DSAuth {
 
     event LogPrice(uint128 val, uint48 age);
 
-    function read() public view returns (bytes32) {
+    function read() external view returns (bytes32) {
         require(val > 0, "Invalid price feed");
-        return bytes32(val);
+        return bytes32(uint256(val));
     }
 
-    function peek() public view returns (bytes32,bool) {
-        return (bytes32(val), val > 0);
+    function peek() external view returns (bytes32,bool) {
+        return (bytes32(uint256(val)), val > 0);
     }
 
     function recover(uint256 val_, uint256 age_, uint8 v, bytes32 r, bytes32 s, bytes32 wat_) internal pure returns (address) {
@@ -52,16 +52,24 @@ contract Median is DSAuth {
         );
     }
 
+    function getSlot(address a) internal pure returns (uint8) {
+        return uint8(uint256(a) >> 152);
+    }
+
+    function shr(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a >> b;
+    }
+
     function poke(
-        uint256[] val_, uint256[] age_,
-        uint8[] v, bytes32[] r, bytes32[] s) external
+        uint256[] calldata val_, uint256[] calldata age_,
+        uint8[] calldata v, bytes32[] calldata r, bytes32[] calldata s) external
     {
         uint256 l = val_.length;
         require(l >= min, "Not enough signed messages");
         require(l % 2 != 0, "Need odd number of messages");
 
-        // Array to store signer addresses, to check for uniqueness later
-        address[] memory signers = new address[](l);
+        // bloom filter
+        uint256 bloom = 0;
 
         for (uint i = 0; i < l; i++) {
             // Validate the values were signed by an authorized oracle
@@ -74,14 +82,18 @@ contract Median is DSAuth {
 
             // Check for ordered values (TODO: better out of bounds check?)
             if ((i + 1) < l) {
-                // require(val_[i] <= val_[i + 1], "Messages not in order");
+                require(val_[i] <= val_[i + 1], "Messages not in order");
             }
             
             // Check for uniqueness (TODO: is this the best we can do?)
-            for (uint j = 0; j < i; j++) {
-                require(signers[j] != signer, "Oracle already signed");
-            }
-            signers[i] = signer;
+            // for (uint j = 0; j < i; j++) {
+            //     require(signers[j] != signer, "Oracle already signed");
+            // }
+            // signers[i] = signer;
+
+            uint8 slot = getSlot(signer);
+            require(shr(bloom, slot) % 2 == 0, "Oracle already signed");
+            bloom += uint256(2) ** slot;
         }
         
         // Write the value and timestamp to storage
@@ -92,16 +104,16 @@ contract Median is DSAuth {
         emit LogPrice(val, age); // some event
     }
 
-    function lift(address a) public auth {
-        require(a != 0x0, "No oracle 0");
+    function lift(address a) external auth {
+        require(a != address(0), "No oracle 0");
         orcl[a] = true;
     }
 
-    function drop(address a) public auth {
+    function drop(address a) external auth {
         orcl[a] = false;
     }
 
-    function setMin(uint256 min_) public auth {
+    function setMin(uint256 min_) external auth {
         require(min_ > 0, "Minimum valid oracles cannot be 0");
         min = min_;
     }
