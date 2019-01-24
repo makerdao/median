@@ -58,10 +58,11 @@ median=$(seth --to-address "$1" 2>/dev/null) || {
 }
 
 echo "Median: $median"
-
+i=1
 for acc in "${accounts[@]}"; do
     ts=$(date +%s)
-    price=250.$((RANDOM % 1000))
+    price=$((250 + i)).$((RANDOM % 1000))
+    i=$((i + 1))
     hash=$(hash "ethusd" "$price" "$ts")
     sig=$(ethsign msg --from "$acc" --data "$hash" --passphrase-file "$ETH_PASSWORD")
     res=$(sed 's/^0x//' <<< "$sig")

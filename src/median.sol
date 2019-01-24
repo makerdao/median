@@ -74,7 +74,7 @@ contract Median is DSAuth {
 
             // Check for ordered values (TODO: better out of bounds check?)
             if ((i + 1) < l) {
-                // require(val_[i] <= val_[i + 1], "Messages not in order");
+                require(val_[i] <= val_[i + 1], "Messages not in order");
             }
             
             // Check for uniqueness (TODO: is this the best we can do?)
