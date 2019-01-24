@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import "ds-thing/thing.sol";
 
@@ -28,7 +28,7 @@ contract Median is DSAuth {
 
     //Set type of Oracle
     constructor(bytes32 _wat) public {
-        wat=_wat;
+        wat = _wat;
     }
 
     // Authorized oracles, set by an auth
@@ -36,13 +36,13 @@ contract Median is DSAuth {
 
     event LogPrice(uint128 val, uint48 age);
 
-    function read() public view returns (bytes32) {
+    function read() external view returns (bytes32) {
         require(val > 0, "Invalid price feed");
-        return bytes32(val);
+        return bytes32(uint256(val));
     }
 
-    function peek() public view returns (bytes32,bool) {
-        return (bytes32(val), val > 0);
+    function peek() external view returns (bytes32,bool) {
+        return (bytes32(uint256(val)), val > 0);
     }
 
     function recover(uint256 val_, uint256 age_, uint8 v, bytes32 r, bytes32 s, bytes32 wat_) internal pure returns (address) {
@@ -53,8 +53,8 @@ contract Median is DSAuth {
     }
 
     function poke(
-        uint256[] val_, uint256[] age_,
-        uint8[] v, bytes32[] r, bytes32[] s) external
+        uint256[] calldata val_, uint256[] calldata age_,
+        uint8[] calldata v, bytes32[] calldata r, bytes32[] calldata s) external
     {
         uint256 l = val_.length;
         require(l >= min, "Not enough signed messages");
@@ -92,16 +92,16 @@ contract Median is DSAuth {
         emit LogPrice(val, age); // some event
     }
 
-    function lift(address a) public auth {
-        require(a != 0x0, "No oracle 0");
+    function lift(address a) external auth {
+        require(a != address(0), "No oracle 0");
         orcl[a] = true;
     }
 
-    function drop(address a) public auth {
+    function drop(address a) external auth {
         orcl[a] = false;
     }
 
-    function setMin(uint256 min_) public auth {
+    function setMin(uint256 min_) external auth {
         require(min_ > 0, "Minimum valid oracles cannot be 0");
         min = min_;
     }
