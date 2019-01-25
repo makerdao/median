@@ -34,7 +34,8 @@ contract Median is DSAuth {
     // Authorized oracles, set by an auth
     mapping (address => bool) public orcl;
 
-    event LogPrice(uint128 val, uint48 age);
+    event LogMedianPrice(uint128 val, uint48 age);
+    event LogFeedPrice(address src, uint256 val, uint256 age);
 
     function read() external view returns (bytes32) {
         require(val > 0, "Invalid price feed");
@@ -73,18 +74,20 @@ contract Median is DSAuth {
 
         for (uint i = 0; i < l; i++) {
             // Validate the values were signed by an authorized oracle
-            address signer = recover(val_[i], age_[i], v[i], r[i], s[i], wat);
+            uint256 val_i  = val_[i];
+            uint256 age_i  = age_[i];
+            address signer = recover(val_i, age_i, v[i], r[i], s[i], wat);
             // Check that signer is an oracle
             require(orcl[signer], "Signature by invalid oracle");
 
             // Price feed age greater than last medianizer age
-            require(age_[i] > uint256(age), "Stale message");
+            require(age_i > uint256(age), "Stale message");
 
             // Check for ordered values (TODO: better out of bounds check?)
             if ((i + 1) < l) {
-                require(val_[i] <= val_[i + 1], "Messages not in order");
+                require(val_i <= val_[i + 1], "Messages not in order");
             }
-            
+
             // Check for uniqueness (TODO: is this the best we can do?)
             // for (uint j = 0; j < i; j++) {
             //     require(signers[j] != signer, "Oracle already signed");
@@ -94,14 +97,15 @@ contract Median is DSAuth {
             uint8 slot = getSlot(signer);
             require(shr(bloom, slot) % 2 == 0, "Oracle already signed");
             bloom += uint256(2) ** slot;
+            emit LogFeedPrice(signer, val_i, age_i);
         }
-        
+
         // Write the value and timestamp to storage
         // require(med_ == val_[(l - 1) / 2], "Sanity check fail");
         val = uint128(val_[(l - 1) / 2]);
         age = uint48(block.timestamp);
 
-        emit LogPrice(val, age); // some event
+        emit LogMedianPrice(val, age);
     }
 
     function lift(address a) external auth {
