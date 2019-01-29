@@ -19,12 +19,12 @@ pragma solidity ^0.5.2;
 
 import "ds-test/test.sol";
 
-import "./median.sol";
+import {Median, MedianI} from "./median.sol";
 
 contract Oracle {
-    Median m;
+    MedianI m;
     
-    constructor(Median m_) public {
+    constructor(MedianI m_) public {
         m = m_;
     }
 
@@ -38,10 +38,10 @@ contract Oracle {
 }
 
 contract MedianTest is DSTest {
-    Median m;
+    MedianI m;
 
     function setUp() public {
-        m = new Median("ethusd");
+        m = MedianI(address(new Median("ethusd")));
     }
 
     function test_Median() public {

@@ -1,6 +1,6 @@
 // median.sol - Medianizer v2
 
-// Copyright (C) 2017, 2018  DappHub, LLC
+// Copyright (C) 2019 Lev Livnev <lev@liv.nev.org.uk>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,102 +17,211 @@
 
 pragma solidity ^0.5.2;
 
-import "ds-thing/thing.sol";
+contract MedianI {
+  function read() external returns (bytes32);
+  function peek() external returns (bytes32, bool);
+  function poke(uint256[] memory val_, uint256[] memory age_, uint8[] memory v, bytes32[] memory r, bytes32[] memory s) public;
+  function lift(address a) external;
+  function drop(address a) external;
+  function setMin(uint256 min_) external;
+}
 
-contract Median is DSAuth {
+// TODO: auth, logs
+// TODO: safety/range checks
 
-    uint256 public val;
-    uint256 public age;
-    bytes32 public wat;
-    uint256 public min; // minimum valid feeds
+contract Median {
 
-    //Set type of Oracle
-    constructor(bytes32 _wat) public {
-        wat = _wat;
+  constructor (bytes32 _wat) public {
+    assembly {
+      // set wat = _wat
+      codecopy(0, sub(codesize, 32), 32)
+      sstore(2, mload(0))
     }
+  }
 
-    // Authorized oracles, set by an auth
-    mapping (address => bool) public orcl;
-
-    event LogFeedPrice(address indexed who, uint256 val, uint256 age);
-    event LogMedianPrice(uint256 val, uint256 age);
-
-    function read() external view returns (bytes32) {
-        require(val > 0, "Invalid price feed");
-        return bytes32(val);
-    }
-
-    function peek() external view returns (bytes32,bool) {
-        return (bytes32(val), val > 0);
-    }
-
-    function recover(uint256 val_, uint256 age_, uint8 v, bytes32 r, bytes32 s, bytes32 wat_) internal pure returns (address) {
-        return ecrecover(
-            keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(val_, age_, wat_)))),
-            v, r, s
-        );
-    }
-
-    function getSlot(address a) internal pure returns (uint8) {
-        return uint8(uint256(a) >> 152);
-    }
-
-    function shr(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a >> b;
-    }
-
-    function poke(
-        uint256[] memory val_, uint256[] memory age_,
-        uint8[] memory v, bytes32[] memory r, bytes32[] memory s) public
-    {
-        uint256 l = val_.length;
-        require(l >= min, "Not enough signed messages");
-        require(l % 2 != 0, "Need odd number of messages");
-
-        // bloom filter
-        uint256 bloom = 0;
-
-        for (uint i = 0; i < l; i++) {
-            // Validate the values were signed by an authorized oracle
-            address signer = recover(val_[i], age_[i], v[i], r[i], s[i], wat);
-            // Check that signer is an oracle
-            require(orcl[signer], "Signature by invalid oracle");
-
-            // Price feed age greater than last medianizer age
-            require(age_[i] > age, "Stale message");
-
-            // Check for ordered values (TODO: better out of bounds check?)
-            if ((i + 1) < l) {
-                require(val_[i] <= val_[i + 1], "Messages not in order");
-            }
-
-            uint8 slot = getSlot(signer);
-            require(shr(bloom, slot) % 2 == 0, "Oracle already signed");
-            bloom += uint256(2) ** slot;
-            
-            // emit LogFeedPrice(signer, val_[i], age_[i]);
+  function () external {
+    assembly {
+      let sig := div(calldataload(0), 0x100000000000000000000000000000000000000000000000000000000)
+      if eq(sig, 0x57de26a4) /* function read() external returns (bytes32) */ {
+        // iff val > 0
+        if eq(sload(0), 0) {
+          mstore(0, "Invalid price feed")
+          revert(0, 32)
         }
-        
-        // Write the value and timestamp to storage
-        // require(med_ == val_[(l - 1) / 2], "Sanity check fail");
-        val = val_[(l - 1) / 2];
-        age = block.timestamp;
 
-        emit LogMedianPrice(val, age); // some event
+        mstore(64, sload(0))
+        return(64, 32)
+      }
+
+      if eq(sig, 0x59e02dd7) /* function peek() external returns (bytes32,bool) */ {
+        mstore(64, sload(0))
+        mstore(96, gt(sload(0), 0))
+        return(64, 64)
+      }
+
+      if eq(sig, 0x89bbb8b2) /* function poke(uint256[] val_, uint256[] age_, uint8[] v, bytes32[] r, bytes32[] s) public returns () */ {
+        // l := val_.length
+        let offset_val := add(4, calldataload(4))
+        let l := calldataload(offset_val)
+
+        // iff l >= min
+        if lt(l, sload(3)) {
+          mstore(0, "Not enough signed messages")
+          revert(0, 32)
+        }
+
+        // iff l % 2 == 1
+        if eq(mod(l, 2), 0) {
+          mstore(0, "Need odd number of messages")
+          revert(0, 32)
+        }
+
+        let age := sload(1)
+        let wat := sload(2)
+
+        let offset_age := add(4, calldataload(36))
+        let offset_v   := add(4, calldataload(68))
+        let offset_r   := add(4, calldataload(100))
+        let offset_s   := add(4, calldataload(132))
+
+        let bloom     := 0
+        let lastval   := 0
+
+        for { let i := 0 } lt(i, l) { i := add(i, 1) } {
+          let offseti := add(32, mul(i, 32))
+          let vali := calldataload(add(offset_val, offseti))
+          let agei := calldataload(add(offset_age, offseti))
+
+          // signer := recover(val_[i], age_[i], v[i], r[i], s[i], wat)
+          let signer := recover(vali,
+                                agei,
+                                calldataload(add(offset_v, offseti)),
+                                calldataload(add(offset_r, offseti)),
+                                calldataload(add(offset_s, offseti)),
+                                wat)
+
+          // iff orcl[signer]
+          let hash_0 := hash2(4, signer)
+          if eq(sload(hash_0), 0) {
+            mstore(0, "Signature by invalid oracle")
+            revert(0, 32)
+          }
+
+          // iff age_[i] > age
+          if iszero(gt(agei, age)) {
+            mstore(0, "Stale message")
+            revert(0, 32)
+          }
+
+          // iff val_[i] > lastval
+          if lt(vali, lastval) {
+            mstore(0, "Messages not in order")
+            revert(0, 32)
+          }
+
+          // lastval := val[i]
+          lastval := vali
+
+          // slot := get_slot(signer)
+          let slot := get_slot(signer)
+
+          // iff shr(bloom, slot) % 2 == 0
+          if eq(1, mod(shift_right(bloom, slot), 2)) {
+            mstore(0, "Oracle already signed")
+            revert(0, 32)
+          }
+
+          // bloom := add(bloom, 2**slot)
+          bloom := add(bloom, exp(2, slot))
+        }
+
+        // set val := val_[(l - 1)/2]
+        sstore(0, calldataload(add(add(offset_val, 16), mul(l, 16))))
+
+        // set age := timestamp
+        sstore(1, timestamp)
+
+        stop()
+      }
+
+      if eq(sig, 0x3c278bd5) /* function lift(address a) external returns () */ {
+        // iff a != 0
+        if eq(calldataload(4), 0) {
+          mstore(0, "No oracle 0")
+          revert(0, 32)
+        }
+
+        // set orcl[a] = 1
+        let hash_0 := hash2(4, calldataload(4))
+        sstore(hash_0, 1)
+
+        stop()
+      }
+
+      if eq(sig, 0x91f2700a) /* function drop(address a) external returns () */ {
+        // set orcl[a] = 0
+        let hash_0 := hash2(4, calldataload(4))
+        sstore(hash_0, 0)
+
+        stop()
+      }
+
+      if eq(sig, 0x45dc3dd8) /* function setMin(uint256 min_) external returns () */ {
+        // iff min != 0
+        if eq(calldataload(4), 0) {
+          mstore(0, "min > 0")
+          revert(0, 32)
+        }
+
+        // set min = min_
+        sstore(3, calldataload(4))
+
+        stop()
+      }
+
+      // failed to select any of the public methods
+      mstore(0, "failed to select a method")
+      revert(0, 32)
+
+      function recover(val_, age_, v, r, s, wat_) -> a {
+        // hash_0 := keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(val_, age_, wat_))))
+        let hash_0 := hash4(0x19457468657265756d205369676e6564204d6573736167653a0a333200000000, 28, val_, age_, wat_)
+
+        mstore(64, hash_0)
+        mstore(96, v)
+        mstore(128, r)
+        mstore(160, s)
+        if iszero(staticcall(gas, 1, 64, 128, 64, 32)) {
+          mstore(0, "ECRECOVER failure!")
+          revert(0, 32)
+        }
+
+        a := mload(64)
+      }
+
+      function get_slot(a) -> slot {
+        slot := shift_right(a, 152)
+      }
+
+      function shift_right(a, b) -> c {
+        c := div(a, exp(2, b))
+      }
+
+      // map[key] translates to hash(key ++ idx(map))
+      function hash2(b, i) -> h {
+        mstore(0, i)
+        mstore(32, b)
+        h := keccak256(0, 64)
+      }
+
+      function hash4(a, sizea, b, c, d) -> h {
+        mstore(0, a)
+        mstore(sizea, b)
+        mstore(add(sizea, 32), c)
+        mstore(add(sizea, 64), d)
+        mstore(sizea, keccak256(sizea, 96))
+        h := keccak256(0, add(sizea, 32))
+      }
     }
-
-    function lift(address a) external auth {
-        require(a != address(0), "No oracle 0");
-        orcl[a] = true;
-    }
-
-    function drop(address a) external auth {
-        orcl[a] = false;
-    }
-
-    function setMin(uint256 min_) external auth {
-        require(min_ > 0, "Minimum valid oracles cannot be 0");
-        min = min_;
-    }
-
+  }
 }
