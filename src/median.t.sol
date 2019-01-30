@@ -170,24 +170,4 @@ contract MedianTest is DSTest {
         assertTrue(ok);
     }
 
-    // function testOne() public {
-    //     uint v = 479 ether;
-    //     emit log_named_uint("v", v);
-    //     uint t = 1513030216;
-    //     emit log_named_uint("t", t);
-    //     bytes32 h = keccak256(abi.encodePacked(v,t));
-    //     emit log_named_bytes32("h", h);
-    //     assertTrue(true);
-    // }
-
-    // function testTwo() public {
-    //     uint128 a = 350 ether;
-    //     emit log_named_uint("a", a);
-    //     bytes memory b = abi.encodePacked(a);
-    //     emit logs(b);
-    //     bytes32 h = keccak256(b);
-    //     emit log_named_bytes32("h", h);
-    //     assertTrue(false);
-    // }
-
 }

@@ -6,13 +6,18 @@ set -e
 
 chain=$(seth chain 2>/dev/null) || {
     echo "Not connected, please run:"
-    echo "  dapp testnet --accounts 5"
+    echo "  dapp testnet --accounts n (where n is an odd number)"
     echo ""
     exit 1
 }
 
 [[ $chain = ethlive ]] && {
     echo "Wow, you are connected to mainnet. Exiting!"
+    exit 1
+}
+
+[[ $(seth rpc eth_accounts | cut -b -4 | uniq | wc -l) == $(seth rpc eth_accounts | wc -l) ]] || {
+    echo "There is a slot clash in the accounts that seth generated, try rerunning dapp testnet."
     exit 1
 }
 
@@ -52,7 +57,7 @@ median=$(seth --to-address "$1" 2>/dev/null) || {
     name=$(seth --to-bytes32 "$(seth --from-ascii "ethusd")")
     median=$(dapp create Median "$name")
 
-    seth send "$median" 'setMin(uint256)' "$(seth --to-word 5)" &> /dev/null
+    seth send "$median" 'setMin(uint256)' "$(seth --to-word ${#accounts[@]})" &> /dev/null
     for acc in "${accounts[@]}"; do
         seth send "$median" 'lift(address)' "$acc" &> /dev/null
     done
