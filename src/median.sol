@@ -36,6 +36,10 @@ contract Median {
       // set wat = _wat
       codecopy(0, sub(codesize, 32), 32)
       sstore(2, mload(0))
+
+      // for testing only:
+      sstore(0, 1)
+      sstore(1, timestamp)
     }
   }
 
