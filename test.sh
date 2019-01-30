@@ -29,6 +29,12 @@ function hash {
 
 function join { local IFS=","; echo "$*"; }
 
+[[ $(seth rpc eth_accounts | cut -b -4 | uniq | wc -l) == $(seth rpc eth_accounts | wc -l) ]] || {
+    echo "There is a slot clash in the accounts that seth generated, try rerunning dapp testnet."
+    exit 1
+}
+
+
 mapfile -t accounts < <(seth rpc eth_accounts)
 
 minaccounts=1
