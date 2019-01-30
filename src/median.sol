@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.4.24;
+pragma solidity >=0.5.0;
 
 import "ds-thing/thing.sol";
 
@@ -38,11 +38,11 @@ contract Median is DSAuth {
 
     function read() public view returns (bytes32) {
         require(val > 0, "Invalid price feed");
-        return bytes32(val);
+        return bytes32(uint(val));
     }
 
     function peek() public view returns (bytes32,bool) {
-        return (bytes32(val), val > 0);
+        return (bytes32(uint(val)), val > 0);
     }
 
     function recover(uint256 val_, uint256 age_, uint8 v, bytes32 r, bytes32 s, bytes32 wat_) internal pure returns (address) {
@@ -53,8 +53,8 @@ contract Median is DSAuth {
     }
 
     function poke(
-        uint256[] val_, uint256[] age_,
-        uint8[] v, bytes32[] r, bytes32[] s) external
+        uint256[] calldata val_, uint256[] calldata age_,
+        uint8[] calldata v, bytes32[] calldata r, bytes32[] calldata s) external
     {
         uint256 l = val_.length;
         require(l >= min, "Not enough signed messages");
@@ -93,7 +93,7 @@ contract Median is DSAuth {
     }
 
     function lift(address a) public auth {
-        require(a != 0x0, "No oracle 0");
+        require(a != address(0), "No oracle 0");
         orcl[a] = true;
     }
 
