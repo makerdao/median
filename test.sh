@@ -59,8 +59,9 @@ median=$(seth --to-address "$1" 2>/dev/null) || {
 
     seth send "$median" 'setMin(uint256)' "$(seth --to-word ${#accounts[@]})" &> /dev/null
     for acc in "${accounts[@]}"; do
-        seth send "$median" 'lift(address)' "$acc" &> /dev/null
+        allaccs+=("${acc#0x}")
     done
+    seth send "$median" 'lift(address[] memory)' "[$(join "${allaccs[@]}")]"
 }
 
 echo "Median: $median"

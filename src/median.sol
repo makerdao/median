@@ -17,33 +17,37 @@
 
 pragma solidity ^0.5.2;
 
-import "ds-thing/thing.sol";
+contract Median {
 
-contract Median is DSAuth {
+    // --- Auth ---
+    mapping (address => uint) public wards;
+    function rely(address guy) public auth { wards[guy] = 1; }
+    function deny(address guy) public auth { wards[guy] = 0; }
+    modifier auth { require(wards[msg.sender] == 1); _; }
 
-    uint256 public val;
-    uint256 public age;
+    uint128 public val;
+    uint32  public age;
     bytes32 public wat;
     uint256 public min; // minimum valid feeds
 
+    // Authorized oracles, set by an auth
+    mapping (address => bool) public orcl;
+    
+    event LogMedianPrice(uint256 val, uint256 age);
+
     //Set type of Oracle
     constructor(bytes32 _wat) public {
+        wards[msg.sender] = 1;
         wat = _wat;
     }
 
-    // Authorized oracles, set by an auth
-    mapping (address => bool) public orcl;
-
-    event LogFeedPrice(address indexed who, uint256 val, uint256 age);
-    event LogMedianPrice(uint256 val, uint256 age);
-
     function read() external view returns (bytes32) {
         require(val > 0, "Invalid price feed");
-        return bytes32(val);
+        return bytes32(uint256(val));
     }
 
     function peek() external view returns (bytes32,bool) {
-        return (bytes32(val), val > 0);
+        return (bytes32(uint256(val)), val > 0);
     }
 
     function recover(uint256 val_, uint256 age_, uint8 v, bytes32 r, bytes32 s, bytes32 wat_) internal pure returns (address) {
@@ -51,14 +55,6 @@ contract Median is DSAuth {
             keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(val_, age_, wat_)))),
             v, r, s
         );
-    }
-
-    function getSlot(address a) internal pure returns (uint8) {
-        return uint8(uint256(a) >> 152);
-    }
-
-    function shr(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a >> b;
     }
 
     function poke(
@@ -86,19 +82,23 @@ contract Median is DSAuth {
                 require(val_[i] <= val_[i + 1], "Messages not in order");
             }
 
-            uint8 slot = getSlot(signer);
-            require(shr(bloom, slot) % 2 == 0, "Oracle already signed");
+            uint8 slot = uint8(uint256(signer) >> 152);
+            require((bloom >> slot) % 2 == 0, "Oracle already signed");
             bloom += uint256(2) ** slot;
-            
-            // emit LogFeedPrice(signer, val_[i], age_[i]);
         }
         
         // Write the value and timestamp to storage
-        // require(med_ == val_[(l - 1) / 2], "Sanity check fail");
-        val = val_[(l - 1) / 2];
-        age = block.timestamp;
+        val = uint128(val_[(l - 1) / 2]);
+        age = uint32(block.timestamp);
 
         emit LogMedianPrice(val, age); // some event
+    }
+
+    function lift(address[] calldata a) external auth {
+        for (uint i = 0; i < a.length; i++) {
+            require(a[i] != address(0), "No oracle 0");
+            orcl[a[i]] = true;
+        }
     }
 
     function lift(address a) external auth {
