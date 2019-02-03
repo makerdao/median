@@ -27,7 +27,7 @@ contract Median {
 
     uint128 public val = 1;
     uint32  public age = 1;
-    bytes32 public wat;
+    bytes32 public constant pair = "ethusd";
     uint256 public min = 1; // minimum valid feeds
 
     // Authorized oracles, set by an auth
@@ -36,9 +36,8 @@ contract Median {
     event LogMedianPrice(uint256 val, uint256 age);
 
     //Set type of Oracle
-    constructor(bytes32 _wat) public {
+    constructor() public {
         wards[msg.sender] = 1;
-        wat = _wat;
     }
 
     function read() external view returns (bytes32) {
@@ -50,9 +49,9 @@ contract Median {
         return (bytes32(uint256(val)), val > 0);
     }
 
-    function recover(uint256 val_, uint256 age_, uint8 v, bytes32 r, bytes32 s, bytes32 wat_) internal pure returns (address) {
+    function recover(uint256 val_, uint256 age_, uint8 v, bytes32 r, bytes32 s) internal pure returns (address) {
         return ecrecover(
-            keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(val_, age_, wat_)))),
+            keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(val_, age_, pair)))),
             v, r, s
         );
     }
@@ -67,15 +66,17 @@ contract Median {
         uint256 bloom = 0;
         // order check
         uint256 last = 0;
+        // current age
+        uint256 zzz = age;
 
         for (uint i = 0; i < val_.length; i++) {
             // Validate the values were signed by an authorized oracle
-            address signer = recover(val_[i], age_[i], v[i], r[i], s[i], wat);
+            address signer = recover(val_[i], age_[i], v[i], r[i], s[i]);
             // Check that signer is an oracle
             require(orcl[signer], "Signature by invalid oracle");
 
             // Price feed age greater than last medianizer age
-            require(age_[i] > age, "Stale message");
+            require(age_[i] > zzz, "Stale message");
 
             // Check for ordered values
             require(val_[i] >= last, "Messages not in order");

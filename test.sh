@@ -16,7 +16,7 @@ chain=$(seth chain 2>/dev/null) || {
     exit 1
 }
 
-[[ $(seth rpc eth_accounts | cut -b -4 | uniq | wc -l) == $(seth rpc eth_accounts | wc -l) ]] || {
+[[ $(seth rpc eth_accounts | cut -b 3-4 | sort | uniq | wc -l) == $(seth rpc eth_accounts | wc -l) ]] || {
     echo "There is a slot clash in the accounts that seth generated, try rerunning dapp testnet."
     exit 1
 }
@@ -55,7 +55,7 @@ median=$(seth --to-address "$1" 2>/dev/null) || {
     dapp build
     echo >&2 "Creating median..."
     name=$(seth --to-bytes32 "$(seth --from-ascii "ethusd")")
-    median=$(dapp create Median "$name")
+    median=$(dapp create Median)
 
     echo >&2 "Setting min to ${#accounts[@]}"
     seth send "$median" 'setMin(uint256)' "$(seth --to-word ${#accounts[@]})"
