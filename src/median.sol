@@ -65,6 +65,8 @@ contract Median {
 
         // bloom filter
         uint256 bloom = 0;
+        // order check
+        uint256 last = 0;
 
         for (uint i = 0; i < val_.length; i++) {
             // Validate the values were signed by an authorized oracle
@@ -75,15 +77,14 @@ contract Median {
             // Price feed age greater than last medianizer age
             require(age_[i] > age, "Stale message");
 
-            // Check for ordered values (TODO: better out of bounds check?)
-            if ((i + 1) < val_.length) {
-                require(val_[i] <= val_[i + 1], "Messages not in order");
-            }
+            // Check for ordered values
+            require(val_[i] >= last, "Messages not in order");
+            last = val_[i];
 
             uint8 slot = uint8(uint256(signer) >> 152);
             require((bloom >> slot) % 2 == 0, "Oracle already signed");
             bloom += uint256(2) ** slot;
-        }
+        } // 201661 gas used... (maybe a bit different with diff addresses)
         
         // Write the value and timestamp to storage
         val = uint128(val_[val_.length >> 1]);
