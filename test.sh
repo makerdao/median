@@ -51,13 +51,13 @@ export ETH_FROM ETH_KEYSTORE ETH_PASSWORD ETH_GAS ETH_RPC_ACCOUNTS
 
 median=$(seth --to-address "$1" 2>/dev/null) || {
     echo "Building..."
-    export SOLC_FLAGS=--optimize
-    dapp build 2&>/dev/null
+    export SOLC_FLAGS="--optimize --evm-version constantinople"
+    dapp build
     echo "Creating median..."
     name=$(seth --to-bytes32 "$(seth --from-ascii "ethusd")")
     median=$(dapp create Median "$name")
 
-    seth send "$median" 'setMin(uint256)' "$(seth --to-word ${#accounts[@]})" &> /dev/null
+    seth send "$median" 'setMin(uint256)' "$(seth --to-word ${#accounts[@]})"
     for acc in "${accounts[@]}"; do
         allaccs+=("${acc#0x}")
     done
@@ -66,11 +66,10 @@ median=$(seth --to-address "$1" 2>/dev/null) || {
 
 echo "Median: $median"
 i=1
+ts=$(date +%s)
 for acc in "${accounts[@]}"; do
-    ts=$(date +%s)
-    price=$((250 + i)).$((RANDOM % 1000))
+    price=$((250 + i))
     i=$((i + 1))
-    echo "$price"
     hash=$(hash "ethusd" "$price" "$ts")
     sig=$(ethsign msg --from "$acc" --data "$hash" --passphrase-file "$ETH_PASSWORD")
     res=$(sed 's/^0x//' <<< "$sig")
@@ -85,14 +84,14 @@ for acc in "${accounts[@]}"; do
     rs+=("$r")
     ss+=("$s")
     vs+=("$v")
-    cat <<EOF
-Address: $acc
-  val: $price
-  ts : $ts
-  v  : $v
-  r  : $r
-  s  : $s
-EOF
+#     cat <<EOF
+# Address: $acc
+#   val: $price
+#   ts : $ts
+#   v  : $v
+#   r  : $r
+#   s  : $s
+# EOF
 done
 
 allts=$(join "${tss[@]}")

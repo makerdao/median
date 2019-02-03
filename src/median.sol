@@ -25,8 +25,8 @@ contract Median {
     function deny(address guy) public auth { wards[guy] = 0; }
     modifier auth { require(wards[msg.sender] == 1); _; }
 
-    uint128 public val;
-    uint32  public age;
+    uint128 public val = 1;
+    uint32  public age = 1;
     bytes32 public wat;
     uint256 public min; // minimum valid feeds
 
