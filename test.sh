@@ -50,13 +50,14 @@ ETH_FROM=$(seth --to-address "${accounts[0]}")
 export ETH_FROM ETH_KEYSTORE ETH_PASSWORD ETH_GAS ETH_RPC_ACCOUNTS
 
 median=$(seth --to-address "$1" 2>/dev/null) || {
-    echo "Building..."
+    echo >&2 "Building..."
     export SOLC_FLAGS="--optimize --evm-version constantinople"
     dapp build
-    echo "Creating median..."
+    echo >&2 "Creating median..."
     name=$(seth --to-bytes32 "$(seth --from-ascii "ethusd")")
     median=$(dapp create Median "$name")
 
+    echo >&2 "Setting min to ${#accounts[@]}"
     seth send "$median" 'setMin(uint256)' "$(seth --to-word ${#accounts[@]})"
     for acc in "${accounts[@]}"; do
         allaccs+=("${acc#0x}")
@@ -66,7 +67,7 @@ median=$(seth --to-address "$1" 2>/dev/null) || {
 
 echo "Median: $median"
 i=1
-ts=$(date +%s)
+ts=1549168920
 for acc in "${accounts[@]}"; do
     price=$((250 + i))
     i=$((i + 1))

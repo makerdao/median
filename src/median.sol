@@ -28,7 +28,7 @@ contract Median {
     uint128 public val = 1;
     uint32  public age = 1;
     bytes32 public wat;
-    uint256 public min; // minimum valid feeds
+    uint256 public min = 1; // minimum valid feeds
 
     // Authorized oracles, set by an auth
     mapping (address => bool) public orcl;
@@ -61,14 +61,12 @@ contract Median {
         uint256[] calldata val_, uint256[] calldata age_,
         uint8[] calldata v, bytes32[] calldata r, bytes32[] calldata s) external
     {
-        uint256 l = val_.length;
-        require(l >= min, "Not enough signed messages");
-        require(l % 2 != 0, "Need odd number of messages");
+        require(val_.length == min, "Not enough signed messages");
 
         // bloom filter
         uint256 bloom = 0;
 
-        for (uint i = 0; i < l; i++) {
+        for (uint i = 0; i < val_.length; i++) {
             // Validate the values were signed by an authorized oracle
             address signer = recover(val_[i], age_[i], v[i], r[i], s[i], wat);
             // Check that signer is an oracle
@@ -78,7 +76,7 @@ contract Median {
             require(age_[i] > age, "Stale message");
 
             // Check for ordered values (TODO: better out of bounds check?)
-            if ((i + 1) < l) {
+            if ((i + 1) < val_.length) {
                 require(val_[i] <= val_[i + 1], "Messages not in order");
             }
 
@@ -88,7 +86,7 @@ contract Median {
         }
         
         // Write the value and timestamp to storage
-        val = uint128(val_[(l - 1) / 2]);
+        val = uint128(val_[val_.length >> 1]);
         age = uint32(block.timestamp);
 
         emit LogMedianPrice(val, age); // some event
@@ -112,6 +110,7 @@ contract Median {
 
     function setMin(uint256 min_) external auth {
         require(min_ > 0, "Minimum valid oracles cannot be 0");
+        require(min_ % 2 != 0, "Need odd number of messages");
         min = min_;
     }
 
