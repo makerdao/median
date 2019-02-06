@@ -55,13 +55,14 @@ median=$(seth --to-address "$1" 2>/dev/null) || {
     dapp build
     echo >&2 "Creating median..."
     name=$(seth --to-bytes32 "$(seth --from-ascii "ethusd")")
-    median=$(dapp create Median "$name")
+    median=$(dapp create Median)
 
     echo >&2 "Setting min to ${#accounts[@]}"
     seth send "$median" 'setMin(uint256)' "$(seth --to-word ${#accounts[@]})"
     for acc in "${accounts[@]}"; do
         allaccs+=("${acc#0x}")
     done
+    echo >&2 "Lifting ${#accounts[@]} accounts"
     seth send "$median" 'lift(address[] memory)' "[$(join "${allaccs[@]}")]"
 }
 
@@ -71,7 +72,7 @@ ts=1549168920
 for acc in "${accounts[@]}"; do
     price=$((250 + i))
     i=$((i + 1))
-    hash=$(hash "ethusd" "$price" "$ts")
+    hash=$(hash "BTCUSD" "$price" "$ts")
     sig=$(ethsign msg --from "$acc" --data "$hash" --passphrase-file "$ETH_PASSWORD")
     res=$(sed 's/^0x//' <<< "$sig")
     r=${res:0:64}

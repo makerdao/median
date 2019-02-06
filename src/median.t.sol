@@ -25,7 +25,7 @@ contract MedianTest is DSTest {
     Median m;
 
     function setUp() public {
-        m = new Median("ethusd");
+        m = new Median();
     }
 
     function test_Median() public {
@@ -139,7 +139,9 @@ contract MedianTest is DSTest {
 
         m.setMin(15);
 
-        m.lift(orcl);
+        for (uint i = 0; i < orcl.length; i++) {
+            m.lift(orcl[i]);
+        }
 
         uint256 gas = gasleft();
         m.poke(price, ts, v, r, s);
