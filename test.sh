@@ -55,7 +55,7 @@ median=$(seth --to-address "$1" 2>/dev/null) || {
     dapp build
     echo >&2 "Creating median..."
     name=$(seth --to-bytes32 "$(seth --from-ascii "ethusd")")
-    median=$(dapp create Median)
+    median=$(dapp create Median "$name")
 
     echo >&2 "Setting min to ${#accounts[@]}"
     seth send "$median" 'setMin(uint256)' "$(seth --to-word ${#accounts[@]})"
@@ -102,7 +102,7 @@ alls=$(join "${ss[@]}")
 allv=$(join "${vs[@]}")
 
 echo "Sending tx..."
-tx=$(seth send --async "$median" 'poke(uint256[] memory,uint256[] memory,uint8[] memory,bytes32[] memory,bytes32[] memory)' \
+tx=$(set -x; seth send --async "$median" 'poke(uint256[] memory,uint256[] memory,uint8[] memory,bytes32[] memory,bytes32[] memory)' \
 "[$allprices]" \
 "[$allts]" \
 "[$allv]" \

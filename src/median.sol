@@ -16,6 +16,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.2;
+//pragma experimental ABIEncoderV2;
 
 contract Median {
 
@@ -27,31 +28,33 @@ contract Median {
 
     uint128 public val = 1;
     uint32  public age = 1;
-    bytes32 public constant pair = "ethusd";
+    bytes32 public wat = "ethusd";
     uint256 public min = 1; // minimum valid feeds
 
     // Authorized oracles, set by an auth
     mapping (address => bool) public orcl;
     
     event LogMedianPrice(uint256 val, uint256 age);
+    event LogFeedPrice(address src, uint256 val, uint256 age);
 
     //Set type of Oracle
-    constructor() public {
+    constructor(bytes32 wat_) public {
         wards[msg.sender] = 1;
+        wat = wat_;
     }
 
-    function read() external view returns (bytes32) {
+    function read() external view returns (uint256) {
         require(val > 0, "Invalid price feed");
-        return bytes32(uint256(val));
+        return val;
     }
 
-    function peek() external view returns (bytes32,bool) {
-        return (bytes32(uint256(val)), val > 0);
+    function peek() external view returns (uint256,bool) {
+        return (val, val > 0);
     }
 
-    function recover(uint256 val_, uint256 age_, uint8 v, bytes32 r, bytes32 s) internal pure returns (address) {
+    function recover(uint256 val_, uint256 age_, uint8 v, bytes32 r, bytes32 s, bytes32 pair_) internal pure returns (address) {
         return ecrecover(
-            keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(val_, age_, pair)))),
+            keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(val_, age_, pair_)))),
             v, r, s
         );
     }
@@ -62,16 +65,14 @@ contract Median {
     {
         require(val_.length == min, "Not enough signed messages");
 
-        // bloom filter
         uint256 bloom = 0;
-        // order check
         uint256 last = 0;
-        // current age
         uint256 zzz = age;
+        // bytes32 pair = wat;
 
         for (uint i = 0; i < val_.length; i++) {
             // Validate the values were signed by an authorized oracle
-            address signer = recover(val_[i], age_[i], v[i], r[i], s[i]);
+            address signer = recover(val_[i], age_[i], v[i], r[i], s[i], wat);
             // Check that signer is an oracle
             require(orcl[signer], "Signature by invalid oracle");
 
@@ -85,7 +86,8 @@ contract Median {
             uint8 slot = uint8(uint256(signer) >> 152);
             require((bloom >> slot) % 2 == 0, "Oracle already signed");
             bloom += uint256(2) ** slot;
-        } // 201661 gas used... (maybe a bit different with diff addresses)
+            // emit LogFeedPrice(signer, val_[i], age_[i]);
+        }
         
         // Write the value and timestamp to storage
         val = uint128(val_[val_.length >> 1]);
@@ -94,7 +96,7 @@ contract Median {
         emit LogMedianPrice(val, age); // some event
     }
 
-    function lift(address[] calldata a) external auth {
+    function lift(address payable [15] calldata a) external auth {
         for (uint i = 0; i < a.length; i++) {
             require(a[i] != address(0), "No oracle 0");
             orcl[a[i]] = true;
