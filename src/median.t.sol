@@ -137,7 +137,7 @@ contract MedianTest is DSTest {
         s[13] = bytes32(0x69dd6213ef7c960ce7123a50dabd2a45d477c8ae3eca2bb860ec75902a23ca81);
         s[14] = bytes32(0x6573f1f517c89503a1116377f7ac80cbfe2b24bbc5dc1147d03da725198f8cc5);
 
-        m.setMin(15);
+        m.setBar(15);
 
         for (uint i = 0; i < orcl.length; i++) {
             m.lift(orcl[i]);

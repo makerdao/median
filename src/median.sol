@@ -28,7 +28,7 @@ contract Median {
     uint128        val;
     uint32  public age;
     bytes32 public constant wat = "ethusd"; // You want to change this every deploy
-    uint256 public raw = 1;
+    uint256 public bar = 1;
 
     // Authorized oracles, set by an auth
     mapping (address => bool) public orcl;
@@ -60,7 +60,7 @@ contract Median {
         uint256[] calldata val_, uint256[] calldata age_,
         uint8[] calldata v, bytes32[] calldata r, bytes32[] calldata s) external
     {
-        require(val_.length == raw, "Not enough signed messages");
+        require(val_.length == bar, "Not enough signed messages");
 
         uint256 bloom = 0;
         uint256 last = 0;
@@ -104,10 +104,10 @@ contract Median {
         orcl[a] = false;
     }
 
-    function setMin(uint256 raw_) external auth {
-        require(raw_ > 0, "Quorum has to be greater than 1");
-        require(raw_ % 2 != 0, "Quorum has to be an odd number");
-        raw = raw_;
+    function setBar(uint256 bar_) external auth {
+        require(bar_ > 0, "Quorum has to be greater than 1");
+        require(bar_ % 2 != 0, "Quorum has to be an odd number");
+        bar = bar_;
     }
 
 }
