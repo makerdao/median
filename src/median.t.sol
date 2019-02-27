@@ -21,11 +21,26 @@ import "ds-test/test.sol";
 
 import "./median.sol";
 
+contract UnauthorizedPeek {
+    Median m;
+    constructor(Median m_) public {
+        m = m_;
+    }
+    function doPeek() public view returns (uint256,bool) {
+        return m.peek();
+    }
+    function doRead() public view returns (uint256) {
+        return m.read();
+    }
+}
+
 contract MedianTest is DSTest {
     Median m;
+    UnauthorizedPeek u;
 
     function setUp() public {
         m = new Median();
+        u = new UnauthorizedPeek(m);
     }
 
     function test_Median() public {
@@ -143,7 +158,7 @@ contract MedianTest is DSTest {
             m.lift(orcl[i]);
         }
 
-        m.kiss(msg.sender);
+        m.kiss(address(this));
 
         uint256 gas = gasleft();
         m.poke(price, ts, v, r, s);
@@ -152,6 +167,9 @@ contract MedianTest is DSTest {
         (uint256 val, bool ok) = m.peek();
         
         emit log_named_decimal_uint("median", val, 18);
+
+        m.kiss(address(u)); // line below fails without this
+        (val, ok) = u.doPeek();
 
         assertTrue(ok);
     }
