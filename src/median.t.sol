@@ -143,6 +143,8 @@ contract MedianTest is DSTest {
             m.lift(orcl[i]);
         }
 
+        m.kiss(msg.sender);
+
         uint256 gas = gasleft();
         m.poke(price, ts, v, r, s);
         gas = gas - gasleft();

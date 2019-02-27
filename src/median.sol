@@ -32,6 +32,11 @@ contract Median {
 
     // Authorized oracles, set by an auth
     mapping (address => bool) public orcl;
+
+    // Whitelisted contracts, set by an auth
+    mapping (address => bool) public bud;
+
+    modifier toll { require(bud[msg.sender], "Contract is not whitelisted"); _;}
     
     event LogMedianPrice(uint256 val, uint256 age);
 
@@ -40,12 +45,12 @@ contract Median {
         wards[msg.sender] = 1;
     }
 
-    function read() external view returns (uint256) {
+    function read() external view toll returns (uint256) {
         require(val > 0, "Invalid price feed");
         return val;
     }
 
-    function peek() external view returns (uint256,bool) {
+    function peek() external view toll returns (uint256,bool) {
         return (val, val > 0);
     }
 
@@ -110,4 +115,12 @@ contract Median {
         bar = bar_;
     }
 
+    function kiss(address a) external auth {
+        require (a != address(0), "No contract 0");
+        bud[a] = true;
+    }
+
+    function diss(address a) external auth {
+        bud[a] = false;
+    }
 }
