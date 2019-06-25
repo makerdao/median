@@ -114,4 +114,4 @@ echo "TX: $tx"
 echo SUCCESS: "$(seth receipt "$tx" status)"
 echo GAS USED: "$(seth receipt "$tx" gasUsed)"
 
-setzer peek "$median"
+# setzer peek "$median"
