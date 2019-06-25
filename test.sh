@@ -16,7 +16,7 @@ chain=$(seth chain 2>/dev/null) || {
     exit 1
 }
 
-[[ $(seth rpc eth_accounts | cut -b -4 | uniq | wc -l) == $(seth rpc eth_accounts | wc -l) ]] || {
+[[ $(seth rpc eth_accounts | cut -b 3-4 | sort | uniq | wc -l) == $(seth rpc eth_accounts | wc -l) ]] || {
     echo "There is a slot clash in the accounts that seth generated, try rerunning dapp testnet."
     exit 1
 }
@@ -50,26 +50,28 @@ ETH_FROM=$(seth --to-address "${accounts[0]}")
 export ETH_FROM ETH_KEYSTORE ETH_PASSWORD ETH_GAS ETH_RPC_ACCOUNTS
 
 median=$(seth --to-address "$1" 2>/dev/null) || {
-    echo "Building..."
-    export SOLC_FLAGS=--optimize
-    dapp build 2&>/dev/null
-    echo "Creating median..."
+    echo >&2 "Building..."
+    export SOLC_FLAGS="--optimize --evm-version constantinople"
+    dapp build
+    echo >&2 "Creating median..."
     name=$(seth --to-bytes32 "$(seth --from-ascii "ethusd")")
-    median=$(dapp create Median "$name")
+    median=$(dapp create Median)
 
-    seth send "$median" 'setMin(uint256)' "$(seth --to-word ${#accounts[@]})" &> /dev/null
+    echo >&2 "Setting bar to ${#accounts[@]}"
+    seth send "$median" 'setBar(uint256)' "$(seth --to-word ${#accounts[@]})"
     for acc in "${accounts[@]}"; do
-        seth send "$median" 'lift(address)' "$acc" &> /dev/null
+        allaccs+=("${acc#0x}")
     done
+    echo >&2 "Lifting ${#accounts[@]} accounts"
+    seth send "$median" 'lift(address[] memory)' "[$(join "${allaccs[@]}")]"
 }
 
 echo "Median: $median"
 i=1
+ts=1549168920
 for acc in "${accounts[@]}"; do
-    ts=$(date +%s)
-    price=$((250 + i)).$((RANDOM % 1000))
+    price=$((250 + i))
     i=$((i + 1))
-    echo "$price"
     hash=$(hash "ethusd" "$price" "$ts")
     sig=$(ethsign msg --from "$acc" --data "$hash" --passphrase-file "$ETH_PASSWORD")
     res=$(sed 's/^0x//' <<< "$sig")
@@ -84,14 +86,14 @@ for acc in "${accounts[@]}"; do
     rs+=("$r")
     ss+=("$s")
     vs+=("$v")
-    cat <<EOF
-Address: $acc
-  val: $price
-  ts : $ts
-  v  : $v
-  r  : $r
-  s  : $s
-EOF
+#     cat <<EOF
+# Address: $acc
+#   val: $price
+#   ts : $ts
+#   v  : $v
+#   r  : $r
+#   s  : $s
+# EOF
 done
 
 allts=$(join "${tss[@]}")
@@ -101,7 +103,7 @@ alls=$(join "${ss[@]}")
 allv=$(join "${vs[@]}")
 
 echo "Sending tx..."
-tx=$(seth send --async "$median" 'poke(uint256[] memory,uint256[] memory,uint8[] memory,bytes32[] memory,bytes32[] memory)' \
+tx=$(set -x; seth send --async "$median" 'poke(uint256[] memory,uint256[] memory,uint8[] memory,bytes32[] memory,bytes32[] memory)' \
 "[$allprices]" \
 "[$allts]" \
 "[$allv]" \
@@ -112,4 +114,4 @@ echo "TX: $tx"
 echo SUCCESS: "$(seth receipt "$tx" status)"
 echo GAS USED: "$(seth receipt "$tx" gasUsed)"
 
-setzer peek "$median"
+# setzer peek "$median"

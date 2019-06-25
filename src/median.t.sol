@@ -21,27 +21,26 @@ import "ds-test/test.sol";
 
 import "./median.sol";
 
-contract Oracle {
+contract UnauthorizedPeek {
     Median m;
-    
     constructor(Median m_) public {
         m = m_;
     }
-
-    function doPoke(
-        uint256[] memory val, uint256[] memory age,
-        uint8[] memory v, bytes32[] memory r, bytes32[] memory s) public
-    {
-        m.poke(val, age, v, r, s);
+    function doPeek() public view returns (uint256,bool) {
+        return m.peek();
     }
-
+    function doRead() public view returns (uint256) {
+        return m.read();
+    }
 }
 
 contract MedianTest is DSTest {
     Median m;
+    UnauthorizedPeek u;
 
     function setUp() public {
-        m = new Median("ethusd");
+        m = new Median();
+        u = new UnauthorizedPeek(m);
     }
 
     function test_Median() public {
@@ -153,19 +152,24 @@ contract MedianTest is DSTest {
         s[13] = bytes32(0x69dd6213ef7c960ce7123a50dabd2a45d477c8ae3eca2bb860ec75902a23ca81);
         s[14] = bytes32(0x6573f1f517c89503a1116377f7ac80cbfe2b24bbc5dc1147d03da725198f8cc5);
 
-        m.setMin(15);
+        m.setBar(15);
 
-        for (uint8 i = 0; i < orcl.length; i++) {
+        for (uint i = 0; i < orcl.length; i++) {
             m.lift(orcl[i]);
         }
+
+        m.kiss(address(this));
 
         uint256 gas = gasleft();
         m.poke(price, ts, v, r, s);
         gas = gas - gasleft();
         emit log_named_uint("gas", gas);
-        (bytes32 val, bool ok) = m.peek();
+        (uint256 val, bool ok) = m.peek();
         
-        emit log_named_decimal_uint("median", uint256(val), 18);
+        emit log_named_decimal_uint("median", val, 18);
+
+        m.kiss(address(u)); // line below fails without this
+        (val, ok) = u.doPeek();
 
         assertTrue(ok);
     }
