@@ -28,7 +28,7 @@ contract MedianTest is DSTest {
 
     function test_Median() public {
 
-        address payable [15] memory orcl = [
+        address payable[15] memory orcl = [
             0x2d6691a7Ca09FcFC8a069953AD4Ba4De11DbFFd6,
             0xEF7a293Adaec73c5E134040DDAd13a15CEB7231A,
             0xEd1fBB08C70D1d510cF6C6a8B31f69917F0eCd46,
@@ -47,7 +47,7 @@ contract MedianTest is DSTest {
         ];
 
         uint256[] memory price = new uint256[](15);
-    
+
         price[0] = uint256(0x00000000000000000000000000000000000000000000000da04773c0e7dc8000);
         price[1] = uint256(0x00000000000000000000000000000000000000000000000dadaf5fa2ace38000);
         price[2] = uint256(0x00000000000000000000000000000000000000000000000dc37cafcfdb070000);
@@ -148,7 +148,7 @@ contract MedianTest is DSTest {
         gas = gas - gasleft();
         emit log_named_uint("gas", gas);
         (uint256 val, bool ok) = m.peek();
-        
+
         emit log_named_decimal_uint("median", val, 18);
 
         m.kiss(address(u)); // line below fails without this
@@ -156,5 +156,4 @@ contract MedianTest is DSTest {
 
         assertTrue(ok);
     }
-
 }

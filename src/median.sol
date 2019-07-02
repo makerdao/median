@@ -14,13 +14,13 @@ contract Median {
     uint256 public bar = 1;
 
     // Authorized oracles, set by an auth
-    mapping (address => bool) public orcl;
+    mapping (address => uint) public orcl;
 
     // Whitelisted contracts, set by an auth
-    mapping (address => bool) public bud;
+    mapping (address => uint) public bud;
 
-    modifier toll { require(bud[msg.sender], "Contract is not whitelisted"); _;}
-    
+    modifier toll { require(bud[msg.sender] == 1, "Contract is not whitelisted"); _;}
+
     event LogMedianPrice(uint256 val, uint256 age);
 
     //Set type of Oracle
@@ -58,7 +58,7 @@ contract Median {
             // Validate the values were signed by an authorized oracle
             address signer = recover(val_[i], age_[i], v[i], r[i], s[i]);
             // Check that signer is an oracle
-            require(orcl[signer], "Signature by invalid oracle");
+            require(orcl[signer] == 1, "Signature by invalid oracle");
             // Price feed age greater than last medianizer age
             require(age_[i] > zzz, "Stale message");
             // Check for ordered values
@@ -69,7 +69,7 @@ contract Median {
             require((bloom >> slot) % 2 == 0, "Oracle already signed");
             bloom += uint256(2) ** slot;
         }
-        
+
         val = uint128(val_[val_.length >> 1]);
         age = uint32(block.timestamp);
 
@@ -79,17 +79,17 @@ contract Median {
     function lift(address[] calldata a) external auth {
         for (uint i = 0; i < a.length; i++) {
             require(a[i] != address(0), "No oracle 0");
-            orcl[a[i]] = true;
+            orcl[a[i]] = 1;
         }
     }
 
     function lift(address a) external auth {
         require(a != address(0), "No oracle 0");
-        orcl[a] = true;
+        orcl[a] = 1;
     }
 
     function drop(address a) external auth {
-        orcl[a] = false;
+        orcl[a] = 0;
     }
 
     function setBar(uint256 bar_) external auth {
@@ -100,10 +100,10 @@ contract Median {
 
     function kiss(address a) external auth {
         require (a != address(0), "No contract 0");
-        bud[a] = true;
+        bud[a] = 1;
     }
 
     function diss(address a) external auth {
-        bud[a] = false;
+        bud[a] = 0;
     }
 }
