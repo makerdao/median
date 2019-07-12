@@ -1,4 +1,4 @@
-pragma solidity ^0.5.2;
+pragma solidity >=0.5.0;
 
 contract Median {
 
@@ -9,7 +9,7 @@ contract Median {
     modifier auth { require(wards[msg.sender] == 1); _; }
 
     uint128        val;
-    uint32  public age;
+    uint128 public age;
     bytes32 public constant wat = "ethusd"; // You want to change this every deploy
     uint256 public bar = 1;
 
@@ -44,6 +44,17 @@ contract Median {
         );
     }
 
+    function pork(uint256 wad, uint8 v, bytes32 r, bytes32 s) external {
+        address signer = ecrecover(
+            keccak256(
+                abi.encodePacked(
+                    "\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(wad))
+                )), v, r, s);
+        require(orcl[signer] == 1, "invalid");
+        val = uint128(wad);
+        age = uint128(block.timestamp);
+    }
+
     function poke(
         uint256[] calldata val_, uint256[] calldata age_,
         uint8[] calldata v, bytes32[] calldata r, bytes32[] calldata s) external
@@ -71,7 +82,7 @@ contract Median {
         }
 
         val = uint128(val_[val_.length >> 1]);
-        age = uint32(block.timestamp);
+        age = uint128(block.timestamp);
 
         emit LogMedianPrice(val, age);
     }
@@ -92,10 +103,12 @@ contract Median {
         orcl[a] = 0;
     }
 
-    function setBar(uint256 bar_) external auth {
-        require(bar_ > 0, "Quorum has to be greater than 1");
-        require(bar_ % 2 != 0, "Quorum has to be an odd number");
-        bar = bar_;
+    function file(bytes32 what, uint data) external auth {
+        if (what == "bar") {
+            require(data > 0, "Quorum has to be greater than 1");
+            require(data % 2 != 0, "Quorum has to be an odd number");
+            bar = data;
+        }
     }
 
     function kiss(address a) external auth {
