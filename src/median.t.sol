@@ -26,6 +26,15 @@ contract MedianTest is DSTest {
         u = new UnauthorizedPeek(m);
     }
 
+    function test_slot() public {
+        address a = 0x0a00000000000000000000000000000000000000;
+        address b = 0x0B00000000000000000000000000000000000000;
+        m.lift(a);
+        m.lift(b);
+        m.drop(a);
+        m.lift(a);
+    }
+
     function test_Median() public {
 
         address payable [15] memory orcl = [
