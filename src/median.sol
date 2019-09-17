@@ -19,8 +19,11 @@ contract Median {
     // Whitelisted contracts, set by an auth
     mapping (address => bool) public bud;
 
+    // Mapping for at most 256 oracles
+    mapping (uint8 => address) public slot;
+
     modifier toll { require(bud[msg.sender], "Contract is not whitelisted"); _;}
-    
+
     event LogMedianPrice(uint256 val, uint256 age);
 
     //Set type of Oracle
@@ -65,11 +68,11 @@ contract Median {
             require(val_[i] >= last, "Messages not in order");
             last = val_[i];
             // Bloom filter for signer uniqueness
-            uint8 slot = uint8(uint256(signer) >> 152);
-            require((bloom >> slot) % 2 == 0, "Oracle already signed");
-            bloom += uint256(2) ** slot;
+            uint8 sl = uint8(uint256(signer) >> 152);
+            require((bloom >> sl) % 2 == 0, "Oracle already signed");
+            bloom += uint256(2) ** sl;
         }
-        
+
         val = uint128(val_[val_.length >> 1]);
         age = uint32(block.timestamp);
 
@@ -78,18 +81,21 @@ contract Median {
 
     function lift(address[] calldata a) external auth {
         for (uint i = 0; i < a.length; i++) {
-            require(a[i] != address(0), "No oracle 0");
-            orcl[a[i]] = true;
+            lift(a[i]);
         }
     }
 
-    function lift(address a) external auth {
+    function lift(address a) public auth {
         require(a != address(0), "No oracle 0");
+        uint8 s = uint8(uint256(a) >> 152);
+        require(slot[s] == address(0), "Signer already exists");
         orcl[a] = true;
+        slot[s] = a;
     }
 
     function drop(address a) external auth {
         orcl[a] = false;
+        slot[uint8(uint256(a) >> 152)] = address(0);
     }
 
     function setBar(uint256 bar_) external auth {

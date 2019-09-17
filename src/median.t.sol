@@ -26,6 +26,22 @@ contract MedianTest is DSTest {
         u = new UnauthorizedPeek(m);
     }
 
+    function test_slot() public {
+        address a = 0x0a00000000000000000000000000000000000000;
+        address b = 0x0B00000000000000000000000000000000000000;
+        m.lift(a);
+        m.lift(b);
+        m.drop(a);
+        m.lift(a);
+    }
+
+    function testFail_slot() public {
+        address a = 0x0a00000000000000000000000000000000000000;
+        address b = 0x0A11111111111111111111111111111111111111;
+        m.lift(a);
+        m.lift(b);
+    }
+
     function test_Median() public {
 
         address payable [15] memory orcl = [
@@ -47,7 +63,7 @@ contract MedianTest is DSTest {
         ];
 
         uint256[] memory price = new uint256[](15);
-    
+
         price[0] = uint256(0x00000000000000000000000000000000000000000000000da04773c0e7dc8000);
         price[1] = uint256(0x00000000000000000000000000000000000000000000000dadaf5fa2ace38000);
         price[2] = uint256(0x00000000000000000000000000000000000000000000000dc37cafcfdb070000);
@@ -148,7 +164,7 @@ contract MedianTest is DSTest {
         gas = gas - gasleft();
         emit log_named_uint("gas", gas);
         (uint256 val, bool ok) = m.peek();
-        
+
         emit log_named_decimal_uint("median", val, 18);
 
         m.kiss(address(u)); // line below fails without this
