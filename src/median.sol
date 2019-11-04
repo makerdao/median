@@ -85,7 +85,7 @@ contract Median {
         }
     }
 
-    function lift(address a) public auth {
+    function lift(address a) internal auth {
         require(a != address(0), "No oracle 0");
         uint8 s = uint8(uint256(a) >> 152);
         require(slot[s] == address(0), "Signer already exists");
@@ -110,18 +110,14 @@ contract Median {
        }
     }
 
-    function kiss(address a) public auth {
+    function kiss(address a) internal auth {
         require (a != address(0), "No contract 0");
         bud[a] = true;
     }
 
     function diss(address[] calldata a) external auth {
        for(uint i = 0; i < a.length; i++) {
-          diss(a[i]);
+          bud[a[i]] = false;
        }
-    }
-
-    function diss(address a) public auth {
-        bud[a] = false;
     }
 }
