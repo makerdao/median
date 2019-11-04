@@ -27,8 +27,10 @@ contract MedianTest is DSTest {
     }
 
     function test_slot() public {
-        address a = 0x0a00000000000000000000000000000000000000;
-        address b = 0x0B00000000000000000000000000000000000000;
+        address[] memory a = new address[](1);
+	a[0] = address(0x0a00000000000000000000000000000000000000);
+	address[] memory b = new address[](1);
+	b[0] = address(0x0B00000000000000000000000000000000000000);
         m.lift(a);
         m.lift(b);
         m.drop(a);
@@ -36,15 +38,17 @@ contract MedianTest is DSTest {
     }
 
     function testFail_slot() public {
-        address a = 0x0a00000000000000000000000000000000000000;
-        address b = 0x0A11111111111111111111111111111111111111;
+        address[] memory a = new address[](1);
+	a[0] = address(0x0a00000000000000000000000000000000000000);
+        address[] memory b = new address[](1);
+	b[0] = address(0x0A11111111111111111111111111111111111111);
         m.lift(a);
         m.lift(b);
     }
 
     function test_Median() public {
 
-        address payable [15] memory orcl = [
+        address [15] memory orcl = [
             0x2d6691a7Ca09FcFC8a069953AD4Ba4De11DbFFd6,
             0xEF7a293Adaec73c5E134040DDAd13a15CEB7231A,
             0xEd1fBB08C70D1d510cF6C6a8B31f69917F0eCd46,
@@ -153,11 +157,12 @@ contract MedianTest is DSTest {
 
         m.setBar(15);
 
-        for (uint i = 0; i < orcl.length; i++) {
-            m.lift(orcl[i]);
-        }
+	m.lift(orcl);
 
-        m.kiss(address(this));
+	address[] memory f = new address[](2);
+	f[0] = address(this);
+	f[1] = address(u);
+        m.kiss(f);
 
         uint256 gas = gasleft();
         m.poke(price, ts, v, r, s);
@@ -167,7 +172,6 @@ contract MedianTest is DSTest {
 
         emit log_named_decimal_uint("median", val, 18);
 
-        m.kiss(address(u)); // line below fails without this
         (val, ok) = u.doPeek();
 
         assertTrue(ok);

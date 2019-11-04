@@ -93,7 +93,13 @@ contract Median {
         slot[s] = a;
     }
 
-    function drop(address a) external auth {
+    function drop(address[] calldata a) external auth {
+       for (uint i = 0; i < a.length; i++) {
+          drop(a[i]);
+       }
+    }
+
+    function drop(address a) internal auth {
         orcl[a] = false;
         slot[uint8(uint256(a) >> 152)] = address(0);
     }
