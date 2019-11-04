@@ -104,12 +104,24 @@ contract Median {
         bar = bar_;
     }
 
-    function kiss(address a) external auth {
+    function kiss(address[] calldata a) external auth {
+       for(uint i = 0; i < a.length; i++) {
+          kiss(a[i]);
+       }
+    }
+
+    function kiss(address a) public auth {
         require (a != address(0), "No contract 0");
         bud[a] = true;
     }
 
-    function diss(address a) external auth {
+    function diss(address[] calldata a) external auth {
+       for(uint i = 0; i < a.length; i++) {
+          diss(a[i]);
+       }
+    }
+
+    function diss(address a) public auth {
         bud[a] = false;
     }
 }
