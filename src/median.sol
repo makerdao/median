@@ -3,7 +3,7 @@ pragma solidity ^0.5.2;
 contract Median {
 
     // --- Auth ---
-    mapping (address => uint) public wards;
+    mapping (address => uint256) public wards;
     function rely(address guy) public auth { wards[guy] = 1; }
     function deny(address guy) public auth { wards[guy] = 0; }
     modifier auth { require(wards[msg.sender] == 1); _; }
@@ -14,15 +14,15 @@ contract Median {
     uint256 public bar = 1;
 
     // Authorized oracles, set by an auth
-    mapping (address => bool) public orcl;
+    mapping (address => uint256) public orcl;
 
     // Whitelisted contracts, set by an auth
-    mapping (address => bool) public bud;
+    mapping (address => uint256) public bud;
 
     // Mapping for at most 256 oracles
     mapping (uint8 => address) public slot;
 
-    modifier toll { require(bud[msg.sender], "Contract is not whitelisted"); _;}
+    modifier toll { require(bud[msg.sender] == 1, "Contract is not whitelisted"); _;}
 
     event LogMedianPrice(uint256 val, uint256 age);
 
@@ -61,7 +61,7 @@ contract Median {
             // Validate the values were signed by an authorized oracle
             address signer = recover(val_[i], age_[i], v[i], r[i], s[i]);
             // Check that signer is an oracle
-            require(orcl[signer], "Signature by invalid oracle");
+            require(orcl[signer] == 1, "Signature by invalid oracle");
             // Price feed age greater than last medianizer age
             require(age_[i] > zzz, "Stale message");
             // Check for ordered values
@@ -81,49 +81,37 @@ contract Median {
 
     function lift(address[] calldata a) external auth {
         for (uint i = 0; i < a.length; i++) {
-            lift(a[i]);
+            require(a[i] != address(0), "No oracle 0");
+            uint8 s = uint8(uint256(a[i]) >> 152);
+            require(slot[s] == address(0), "Signer already exists");
+            orcl[a[i]] = 1;
+            slot[s] = a[i];
         }
-    }
-
-    function lift(address a) internal auth {
-        require(a != address(0), "No oracle 0");
-        uint8 s = uint8(uint256(a) >> 152);
-        require(slot[s] == address(0), "Signer already exists");
-        orcl[a] = true;
-        slot[s] = a;
     }
 
     function drop(address[] calldata a) external auth {
        for (uint i = 0; i < a.length; i++) {
-          drop(a[i]);
+            orcl[a[i]] = 0;
+            slot[uint8(uint256(a[i]) >> 152)] = address(0);
        }
     }
 
-    function drop(address a) internal auth {
-        orcl[a] = false;
-        slot[uint8(uint256(a) >> 152)] = address(0);
-    }
-
     function setBar(uint256 bar_) external auth {
-        require(bar_ > 0, "Quorum has to be greater than 1");
+        require(bar_ > 0, "Quorum has to be greater than 0");
         require(bar_ % 2 != 0, "Quorum has to be an odd number");
         bar = bar_;
     }
 
     function kiss(address[] calldata a) external auth {
-       for(uint i = 0; i < a.length; i++) {
-          kiss(a[i]);
-       }
-    }
-
-    function kiss(address a) internal auth {
-        require (a != address(0), "No contract 0");
-        bud[a] = true;
+        for(uint i = 0; i < a.length; i++) {
+            require(a[i] != address(0), "No contract 0");
+            bud[a[i]] = 1;
+        }
     }
 
     function diss(address[] calldata a) external auth {
-       for(uint i = 0; i < a.length; i++) {
-          bud[a[i]] = false;
-       }
+        for(uint i = 0; i < a.length; i++) {
+            bud[a[i]] = 0;
+        }
     }
 }
