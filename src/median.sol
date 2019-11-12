@@ -134,6 +134,15 @@ contract Median is LibNote {
         bar = bar_;
     }
 
+    function kiss(address a) external note auth {
+        require(a != address(0), "Median/no-contract-0");
+        bud[a] = 1;
+    }
+
+    function diss(address a) external note auth {
+        bud[a] = 0;
+    }
+
     function kiss(address[] calldata a) external note auth {
         for(uint i = 0; i < a.length; i++) {
             require(a[i] != address(0), "Median/no-contract-0");
