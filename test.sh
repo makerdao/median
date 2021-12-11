@@ -29,7 +29,8 @@ function hash {
     wad=$(seth --to-word "$wad")
     zzz=$(seth --to-word "$3")
 
-    seth keccak 0x"$wad$zzz$wat"
+    hexcat=$(echo "$wad$zzz$wat" | sed 's/0x//g')
+    seth keccak "0x$hexcat"
 }
 
 function join { local IFS=","; echo "$*"; }
@@ -42,17 +43,17 @@ minaccounts=1
     exit 1
 }
 
-ETH_GAS=2000000
+ETH_GAS=3000000
 ETH_KEYSTORE=~/.dapp/testnet/8545/keystore
 ETH_PASSWORD=./empty
 ETH_RPC_ACCOUNTS=yes
 ETH_FROM=$(seth --to-address "${accounts[0]}")
 export ETH_FROM ETH_KEYSTORE ETH_PASSWORD ETH_GAS ETH_RPC_ACCOUNTS
 
-median=$(seth --to-address "$1" 2>/dev/null) || {
+if [ -z "$1" ]; then
     echo >&2 "Building..."
     export SOLC_FLAGS="--optimize --evm-version constantinople"
-    dapp build
+    dapp --use solc:0.5.12 build
     echo >&2 "Creating median..."
     name=$(seth --to-bytes32 "$(seth --from-ascii "ethusd")")
     median=$(dapp create Median)
@@ -64,7 +65,9 @@ median=$(seth --to-address "$1" 2>/dev/null) || {
     done
     echo >&2 "Lifting ${#accounts[@]} accounts"
     seth send "$median" 'lift(address[] memory)' "[$(join "${allaccs[@]}")]"
-}
+else
+    median=$(seth --to-address "$1" 2>/dev/null)
+fi
 
 echo "Median: $median"
 i=1
@@ -83,8 +86,8 @@ for acc in "${accounts[@]}"; do
     price=$(seth --to-wei "$price" eth)
     prices+=("$(seth --to-word "$price")")
     tss+=("$(seth --to-word "$ts")")
-    rs+=("$r")
-    ss+=("$s")
+    rs+=("0x$r")
+    ss+=("0x$s")
     vs+=("$v")
 #     cat <<EOF
 # Address: $acc
@@ -113,5 +116,9 @@ tx=$(set -x; seth send --async "$median" 'poke(uint256[] memory,uint256[] memory
 echo "TX: $tx"
 echo SUCCESS: "$(seth receipt "$tx" status)"
 echo GAS USED: "$(seth receipt "$tx" gasUsed)"
+
+seth send $median 'kiss(address)' ${accounts[0]} 2>/dev/null
+price=$(seth call $median "peek()(uint256,bool)" 2>/dev/null)
+echo "PRICE: $price"
 
 # setzer peek "$median"
