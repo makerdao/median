@@ -23,7 +23,7 @@ contract LibNote {
         address  indexed  usr,
         bytes32  indexed  arg1,
         bytes32  indexed  arg2,
-        bytes             data
+        bytes    indexed  data
     ) anonymous;
 
     modifier note {
